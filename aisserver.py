@@ -9,6 +9,7 @@ import ais
 import ais.compatibility.gpsd
 import datetime
 import json
+import sys
 
 class nmeaMessage(object):
     def __init__(self, raw, source="unknown"):
@@ -76,7 +77,7 @@ class session(object):
         for msg in messages:
             if not hasattr(msg, 'json'):
                 continue
-            now = datetime.datetime.utcnow().strftime("%s")
+            now = datetime.datetime.strptime(msg.json["tagblock_timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%s")
             src = msg.json['mmsi']
             if src not in self.last_message_timestamp:
                 yield msg
@@ -90,13 +91,13 @@ class session(object):
 if __name__=="__main__":    
     session_settings = {
         'max_message_per_min':1000,
-        'max_message_per_mmsi_per_min': 0.05,
+        'max_message_per_mmsi_per_min': 60 * float(sys.argv[3]), # 0.05,
 #        'position_precision_degrees': 0.1,
     }
     
     sess = session(settings=session_settings)
-    with open("nmea-sample.tagblock", "r") as inf:
-        with open("nmea.out", "w") as outf:
+    with open(sys.argv[1], "r") as inf:
+        with open(sys.argv[2], "w") as outf:
             for msg in sess(nmeaMessage(line, "ME") for line in inf):
                 if hasattr(msg, 'json'):
                     outf.write(msg.fullmessage)

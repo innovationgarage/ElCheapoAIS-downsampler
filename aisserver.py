@@ -52,10 +52,10 @@ class nmeaMessage(object):
         if hasattr(self, "json") and 'timestamp' in self.json:
             timestamp = self.json['timestamp']
             try:
-                self.tagblock['c'] = datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
+                self.tagblock['c'] = datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ").strftime("%s")
             except ValueError:
                 try:
-                    self.tagblock['c'] = datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
+                    self.tagblock['c'] = datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%s")
                 except ValueError:
                     pass
         else:
@@ -66,32 +66,40 @@ class nmeaMessage(object):
 
 class session(object):
     def __init__(self, settings):
-        self.last_message_timestamp = {}
+        self.last_message_timestamp = None
+        self.last_message_per_mmsi_timestamp = {}
         self.settings = settings
 
     def __call__(self, messages):
         """
         - (if new MMSI) adds MMSI to the session sources
-        - updates last_message_timestamp for the MMSI based on session settings
+        - updates last_message_per_mmsi_timestamp for the MMSI based on session settings
         """
         for msg in messages:
             if not hasattr(msg, 'json'):
                 continue
+
             now = datetime.datetime.strptime(msg.json["tagblock_timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%s")
             src = msg.json['mmsi']
-            if src not in self.last_message_timestamp:
-                yield msg
-                self.last_message_timestamp[src] = now
-            else:
-                seconds_from_last_message = float(now) - float(self.last_message_timestamp[src])
-                if seconds_from_last_message >= 60 * (1. / self.settings['max_message_per_mmsi_per_min']):
-                    yield msg
-                    self.last_message_timestamp[src] = now
             
+            if self.last_message_timestamp is not None:
+                seconds_from_last_message = float(now) - float(self.last_message_timestamp)
+                if seconds_from_last_message < 1. / self.settings['max_message_per_sec']:
+                    continue
+
+            if src in self.last_message_per_mmsi_timestamp:
+                seconds_from_last_message = float(now) - float(self.last_message_per_mmsi_timestamp[src])
+                if seconds_from_last_message < 1. / self.settings['max_message_per_mmsi_per_sec']:
+                    continue
+                    
+            yield msg
+            self.last_message_timestamp = now
+            self.last_message_per_mmsi_timestamp[src] = now
+                    
 if __name__=="__main__":    
     session_settings = {
-        'max_message_per_min':1000,
-        'max_message_per_mmsi_per_min': 60 * float(sys.argv[3]), # 0.05,
+        'max_message_per_sec': float(sys.argv[4]),
+        'max_message_per_mmsi_per_sec': float(sys.argv[3]), # 0.05,
 #        'position_precision_degrees': 0.1,
     }
     

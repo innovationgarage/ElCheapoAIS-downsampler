@@ -8,18 +8,19 @@ import ais.stream
 import ais
 import ais.compatibility.gpsd
 import datetime
-import sys
 import json
 
 class nmeaMessage(object):
     def __init__(self, raw):
         self.raw = raw
-        self.json = {}
         self.tagblock = {}
         self.parse(self.raw)
-        self.generate_tagblock_timestamp()
-        self.generate_tagblock_source()
-        self.add_tagblock()
+        if hasattr(self, 'json'):
+            self.generate_tagblock_timestamp()
+            self.generate_tagblock_source()
+            self.add_tagblock()
+        else:
+            self.fullmessage = self.raw
         self.parse(self.fullmessage)
         
     def parse(self, line):
@@ -28,7 +29,8 @@ class nmeaMessage(object):
             for msg in ais.stream.decode([line], keep_nmea=True):
                 i += 1
                 self.json = ais.compatibility.gpsd.mangle(msg)
-            self.keys = self.json.keys()
+                if hasattr(self, 'json'):
+                    self.keys = self.json.keys()
         except Exception as e:
             print(e)
         
@@ -60,20 +62,63 @@ class nmeaMessage(object):
     def generate_tagblock_source(self):
         if 'mmsi' in self.json:
             self.tagblock['s'] = self.json['mmsi']
-    
+
+class session(object):
+    def __init__(self, settings):
+        self.sources = []
+        self.messages = []
+        self.last_message_timestamp = {}
+        self.settings = settings
+        
+    def add_source(self, src):
+        """
+        src: source identifier of the AIS message - MMSI
+        """
+        if src not in self.sources:
+            self.sources.append(src)
+
+    def drop_source(self, src):
+        if src in self.sources:
+            self.sources.remove(src)
+
+    def add_message(self, msg):
+        """
+        - (if new MMSI) adds MMSI to the session sources
+        - updates last_message_timestamp for the MMSI based on session settings
+        """
+        try:
+            now = datetime.datetime.utcnow().strftime("%s")
+            src = msg.json['mmsi']
+            if src not in self.sources:
+                self.add_source(src)
+                self.messages.append(msg)
+                self.last_message_timestamp[src] = now
+            else:
+                seconds_from_last_message = float(now) - float(self.last_message_timestamp[src])
+                if seconds_from_last_message >= self.settings['max_message_per_mmsi_per_min']/60.:
+                    self.messages.append(msg)
+                    self.last_message_timestamp[src] = now
+        except Exception as e:
+            pass
+            
 if __name__=="__main__":    
-#    line = sys.argv[1]
+    session_settings = {
+        'max_message_per_min':1000,
+        'max_message_per_mmsi_per_min': 0.05,
+#        'position_precision_degrees': 0.1,
+    }
+    
+    sess = session(settings=session_settings)
     with open("nmea-sample", "r") as inf:
         with open("nmea.out", "w") as outf:
-#            line = "!AIVDM,1,1,,B,K5DfMB9FLsM?P00d,0*70"
             for line in inf:
-#                print(line)
                 msg = nmeaMessage(line)
-                json.dump(msg.json, outf)
-                outf.write("\n")
+                sess.add_message(msg)
+                if hasattr(msg, 'json'):
+                    json.dump(msg.json['mmsi'], outf)
+                    outf.write("\n")
                 #            print(json.dumps(msg.json, indent=4, sort_keys=True))
-                print(msg.fullmessage)
-    
+    print(len(sess.messages))
     # msg.add_tagblock()
     
 # class ElCheapo(basic.LineReceiver):
@@ -96,7 +141,6 @@ if __name__=="__main__":
 
 #     def echoMessage(self, message):
 #         self.transport.write(str(message) + b'\n')
-
     
 # from twisted.internet import protocol
 # from twisted.application import service, internet

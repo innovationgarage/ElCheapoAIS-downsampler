@@ -11,16 +11,17 @@ import datetime
 import json
 
 class nmeaMessage(object):
-    def __init__(self, raw):
+    def __init__(self, raw, source="unknown"):
+        self.source = source
         self.raw = raw
         self.tagblock = {}
         self.parse(self.raw)
-        if hasattr(self, 'json'):
+        if self.raw.startswith("\\"):
+            self.fullmessage = self.raw
+        else:
             self.generate_tagblock_timestamp()
             self.generate_tagblock_source()
             self.add_tagblock()
-        else:
-            self.fullmessage = self.raw
         self.parse(self.fullmessage)
         
     def parse(self, line):
@@ -47,7 +48,7 @@ class nmeaMessage(object):
         self.fullmessage = '\{}\{}'.format(tagblock, self.raw)
 
     def generate_tagblock_timestamp(self):
-        if 'timestamp' in self.json:
+        if hasattr(self, "json") and 'timestamp' in self.json:
             timestamp = self.json['timestamp']
             try:
                 self.tagblock['c'] = datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
@@ -60,46 +61,31 @@ class nmeaMessage(object):
             self.tagblock['c'] = datetime.datetime.utcnow().strftime("%s")
             
     def generate_tagblock_source(self):
-        if 'mmsi' in self.json:
-            self.tagblock['s'] = self.json['mmsi']
+        self.tagblock['s'] = self.source
 
 class session(object):
     def __init__(self, settings):
-        self.sources = []
-        self.messages = []
         self.last_message_timestamp = {}
         self.settings = settings
-        
-    def add_source(self, src):
-        """
-        src: source identifier of the AIS message - MMSI
-        """
-        if src not in self.sources:
-            self.sources.append(src)
 
-    def drop_source(self, src):
-        if src in self.sources:
-            self.sources.remove(src)
-
-    def add_message(self, msg):
+    def __call__(self, messages):
         """
         - (if new MMSI) adds MMSI to the session sources
         - updates last_message_timestamp for the MMSI based on session settings
         """
-        try:
+        for msg in messages:
+            if not hasattr(msg, 'json'):
+                continue
             now = datetime.datetime.utcnow().strftime("%s")
             src = msg.json['mmsi']
-            if src not in self.sources:
-                self.add_source(src)
-                self.messages.append(msg)
+            if src not in self.last_message_timestamp:
+                yield msg
                 self.last_message_timestamp[src] = now
             else:
                 seconds_from_last_message = float(now) - float(self.last_message_timestamp[src])
-                if seconds_from_last_message >= self.settings['max_message_per_mmsi_per_min']/60.:
-                    self.messages.append(msg)
+                if seconds_from_last_message >= 60 * (1. / self.settings['max_message_per_mmsi_per_min']):
+                    yield msg
                     self.last_message_timestamp[src] = now
-        except Exception as e:
-            pass
             
 if __name__=="__main__":    
     session_settings = {
@@ -109,16 +95,12 @@ if __name__=="__main__":
     }
     
     sess = session(settings=session_settings)
-    with open("nmea-sample", "r") as inf:
+    with open("nmea-sample.tagblock", "r") as inf:
         with open("nmea.out", "w") as outf:
-            for line in inf:
-                msg = nmeaMessage(line)
-                sess.add_message(msg)
+            for msg in sess(nmeaMessage(line, "ME") for line in inf):
                 if hasattr(msg, 'json'):
-                    json.dump(msg.json['mmsi'], outf)
-                    outf.write("\n")
+                    outf.write(msg.fullmessage)
                 #            print(json.dumps(msg.json, indent=4, sort_keys=True))
-    print(len(sess.messages))
     # msg.add_tagblock()
     
 # class ElCheapo(basic.LineReceiver):

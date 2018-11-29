@@ -65,7 +65,7 @@ def add_tagblock(ctx, station_id, now, delay_min, delay_max, input, output):
 @click.argument("output")
 @click.pass_context
 def filter(ctx, station_id, mmsis, input, output):
-    mmsis = [int(mmsi) for mmsi in mmsis.split(",")]
+    mmsis = mmsis and [int(mmsi) for mmsi in mmsis.split(",")] or []
     with open(input, "r") as inf:
         with open(output, "w") as outf:
             for msg in (aisdownsampler.message.NmeaMessage(line, station_id) for line in inf):

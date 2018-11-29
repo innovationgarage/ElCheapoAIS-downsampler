@@ -1,4 +1,4 @@
-import aisserver
+import aisdownsampler.message
 import sys
 import datetime
 import random
@@ -37,7 +37,7 @@ delay_max = "delay-max" in kwargs and float(kwargs["delay-max"]) or delay_min
 
 with open(args[0], "r") as inf:
     with open(args[1], "w") as outf:
-        for msg in (aisserver.nmeaMessage(line, "XYZZY") for line in inf):
+        for msg in (aisdownsampler.message.NmeaMessage(line, "XYZZY") for line in inf):
             msg.tagblock['c'] = now
             msg.add_tagblock()
             outf.write(msg.fullmessage)

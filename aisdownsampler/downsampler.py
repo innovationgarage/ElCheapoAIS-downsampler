@@ -14,6 +14,9 @@ class Session(object):
         - updates last_message_per_mmsi_timestamp for the MMSI based on session settings
         """
         for msg in messages:
+            if msg is None:
+                yield msg
+                
             if not hasattr(msg, 'json'):
                 continue
 

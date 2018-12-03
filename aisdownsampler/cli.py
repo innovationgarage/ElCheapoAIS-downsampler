@@ -3,9 +3,11 @@ import click_datetime
 import aisdownsampler.message
 import aisdownsampler.downsampler
 import aisdownsampler.metric
+import aisdownsampler.server
 import random
 import datetime
 import ais.stream
+import json
 
 @click.group()
 @click.pass_context
@@ -29,6 +31,22 @@ def downsample(ctx, station_id, max_message_per_sec, max_message_per_mmsi_per_se
                 if hasattr(msg, 'json'):
                     outf.write(msg.fullmessage)
 
+@main.command()
+@click.option('--station-id', default="unknown")
+@click.option('--max-message-per-sec', type=float)
+@click.option('--max-message-per-mmsi-per-sec', type=float)
+@click.argument("source")
+@click.argument("destination")
+@click.pass_context
+def server(ctx, source, destination, station_id, max_message_per_sec, max_message_per_mmsi_per_sec):
+    aisdownsampler.server.server(
+        source = json.loads(source),
+        destination = json.loads(destination),
+        station_id = station_id,
+        session = aisdownsampler.downsampler.Session(
+            max_message_per_sec=max_message_per_sec,
+            max_message_per_mmsi_per_sec=max_message_per_mmsi_per_sec))
+                    
 @main.group()
 @click.pass_context
 def test(ctx, **kw):

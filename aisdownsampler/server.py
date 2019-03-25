@@ -92,7 +92,7 @@ def build_server(source, destination, session, station_id):
         if conn["type"] == "connect":
             twisted.application.internet.ClientService(
                 twisted.internet.endpoints.clientFromString(
-                    reactor, str(conn["connect"])
+                    twisted.internet.reactor, str(conn["connect"])
                 ), factory).setServiceParent(application)
         elif conn["type"] == "listen":
             twisted.application.strports.service(

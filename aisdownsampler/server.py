@@ -85,7 +85,7 @@ class Server(object):
         self.heartbeat_task = twisted.internet.task.LoopingCall(self.heartbeat)
         self.heartbeat_task.start(1.0)
 
-    def hearbeat(self):
+    def heartbeat(self):
         input_status = self.last_input is not None and datetime.datetime.now() - self.last_input < datetime.timedelta(seconds = 1)
         if input_status != self.input_status:
             self.input_status = input_status

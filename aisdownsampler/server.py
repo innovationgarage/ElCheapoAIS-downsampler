@@ -71,6 +71,9 @@ class Destination(basic.LineReceiver):
             print("Sending", line.fullmessage)
             self.sendLine(line.fullmessage)
 
+    def lineReceived(self, line):
+        print("WARNING: Destination received", repr(line))
+
 class Server(object):
     def __init__(self, notifier = None):
         self.source = None

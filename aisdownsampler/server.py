@@ -114,7 +114,7 @@ def build_server(source, destination, session, station_id, notifier):
     config = {"source": source, "destination": destination}
     
     application = service.Application("aisdownsampler")
-    for direction, conn in config.iteritems():
+    for direction, conn in config.items():
         factory = factories[direction]
         if conn["type"] == "connect":
             twisted.application.internet.ClientService(

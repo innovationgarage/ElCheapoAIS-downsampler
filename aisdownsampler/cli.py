@@ -35,16 +35,18 @@ def downsample(ctx, station_id, max_message_per_sec, max_message_per_mmsi_per_se
 @click.option('--station-id', default="unknown")
 @click.option('--max-message-per-sec', type=float)
 @click.option('--max-message-per-mmsi-per-sec', type=float)
+@click.option('--notifier', default=None)
 @click.argument("source")
 @click.argument("destination")
 @click.pass_context
-def server(ctx, source, destination, station_id, max_message_per_sec, max_message_per_mmsi_per_sec):
+def server(ctx, source, destination, station_id, max_message_per_sec, max_message_per_mmsi_per_sec, notifier):
     """Example:
 
 aisdownsampler server '{"type": "listen", "listen":"tcp:4711"}' '{"type": "listen", "listen":"tcp:4712"}'
 
 """
     aisdownsampler.server.server(
+        notifier = notifier,
         source = json.loads(source),
         destination = json.loads(destination),
         station_id = station_id,

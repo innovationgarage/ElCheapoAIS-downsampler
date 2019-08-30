@@ -15,7 +15,7 @@ import twisted.internet.task
 import datetime
 
 class Source(basic.LineReceiver):
-    delimiter = '\n'
+    delimiter = b'\n'
 
     def connectionMade(self):
         print("Got new source client!")
@@ -32,7 +32,7 @@ class Source(basic.LineReceiver):
         self.factory.server.destination.handleLine(line)
 
 class Destination(basic.LineReceiver):
-    delimiter = '\n'
+    delimiter = b'\n'
 
     def __init__(self, session, station_id):
         self.session = session

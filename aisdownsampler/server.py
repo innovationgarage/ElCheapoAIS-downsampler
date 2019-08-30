@@ -59,7 +59,7 @@ class Destination(basic.LineReceiver):
             if self.lines:
                 line = self.lines[0]
                 self.lines = self.lines[1:]
-                yield aisdownsampler.message.NmeaMessage(line, self.station_id)
+                yield aisdownsampler.message.NmeaMessage(line.decode("utf-8"), self.station_id)
             else:
                 yield None
         
@@ -69,7 +69,7 @@ class Destination(basic.LineReceiver):
             if line is None:
                 return
             print("Sending", line.fullmessage)
-            self.sendLine(line.fullmessage)
+            self.sendLine(line.fullmessage.encode("utf-8"))
 
     def lineReceived(self, line):
         print("WARNING: Destination received", repr(line))

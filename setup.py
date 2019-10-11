@@ -13,7 +13,7 @@ setuptools.setup(name='aisdownsampler',
       packages=setuptools.find_packages(),
       install_requires=[
           'libais==0.17',
-          'Twisted==18.9.0',
+          'socket-tentacles',
           'click',
           'click-datetime'
       ],

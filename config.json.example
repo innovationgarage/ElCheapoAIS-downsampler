@@ -1,0 +1,14 @@
+{
+    "dbus": "SessionBus",
+    
+    "station_id": "foo",
+    
+    "session": {
+        "max_message_per_sec": 0.01,
+        "max_message_per_mmsi_per_sec": 0.01
+    },
+    
+    "connections": [
+        {"handler": "destination", "type": "listen", "address": "tcp:1025"}
+    ]
+}

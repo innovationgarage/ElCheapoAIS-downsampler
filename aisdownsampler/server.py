@@ -5,7 +5,6 @@ import socket_tentacles
 import datetime
 import threading
 import queue
-import json
 
 senders = set()
 station_id = None
@@ -20,20 +19,20 @@ class Downsampler(threading.Thread):
         
     def inputiter(self):
         while True:
-            yield self.queue.get()
+            msg = self.queue.get()
+            yield aisdownsampler.message.NmeaMessage(msg, station_id)
 
     def run(self):
         for msg in self.sess(self.inputiter()):
             if hasattr(msg, 'json'):
                 for sender in senders:
                     sender.queue.put(msg.fullmessage)
-                dbus_api.status.nmea_queue.put(msg.json)
                     
 class ReceiveHandler(socket_tentacles.ReceiveHandler):
     def handle(self):
         for line in self.file:
             print("Received", repr(line))
-            downsampler.queue.put(aisdownsampler.message.NmeaMessage(line, station_id))            
+            downsampler.queue.put(line)
 
 class SendHandler(socket_tentacles.SendHandler):
     def handle(self):
@@ -58,6 +57,6 @@ def server(config):
     station_id = config["station_id"]
     downsampler = Downsampler(**config["session"])
     downsampler.start()
-    dbus_api = aisdownsampler.dbus_api.DBusManager(config["dbus"])
+    dbus_api = aisdownsampler.dbus_api.DBusManager(downsampler, config["dbus"])
     dbus_api.start()
     socket_tentacles.run(config, {"source": ReceiveHandler, "destination": SendHandler})

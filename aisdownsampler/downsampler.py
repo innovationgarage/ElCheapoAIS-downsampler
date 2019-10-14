@@ -20,7 +20,7 @@ class Session(object):
             if not hasattr(msg, 'json'):
                 continue
 
-            now = datetime.datetime.strptime(msg.json["tagblock_timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%s")
+            now = msg.tagblock["c"]
             src = msg.json['mmsi']
             
             if self.max_message_per_sec is not None and self.last_message_timestamp is not None:

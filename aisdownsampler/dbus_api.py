@@ -21,19 +21,20 @@ class DBusManager(threading.Thread):
         self.downsampler.queue.put(msg)
 
     def PropertiesChanged(self, interface_name, properties_modified, properties_deleted, dbus_message):
-        if interface_name != "no.innovationgarage.elcheapoais.downsampler":
-            return
-        for key, value in properties_modified.items():
-            if key == "max_message_per_sec":
-                print("Setting %s=%s" % (key, value))
-                self.downsampler.max_message_per_sec = value
-            elif key == "max_message_per_mmsi_per_sec":
-                print("Setting %s=%s" % (key, value))
-                self.downsampler.max_message_per_mmsi_per_sec = value
-            elif key == "station_id":
-                print("Setting %s=%s" % (key, value))
-                self.downsampler.station_id = value
-    
+        if interface_name == "no.innovationgarage.elcheapoais.downsampler":
+            for key, value in properties_modified.items():
+                if key == "max_message_per_sec":
+                    print("Setting %s=%s" % (key, value))
+                    self.downsampler.max_message_per_sec = value
+                elif key == "max_message_per_mmsi_per_sec":
+                    print("Setting %s=%s" % (key, value))
+                    self.downsampler.max_message_per_mmsi_per_sec = value
+        elif interface_name == "no.innovationgarage.elcheapoais.receiver":    
+            for key, value in properties_modified.items():
+                if key == "station_id":
+                    print("Setting %s=%s" % (key, value))
+                    self.downsampler.station_id = value
+                
     def run(self):
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
@@ -49,8 +50,8 @@ class DBusManager(threading.Thread):
             "no.innovationgarage.elcheapoais.downsampler", "max_message_per_mmsi_per_sec", 0.01)
 
         self.downsampler.station_id = get(
-            self.bus, 'no.innovationgarage.elcheapoais.config', '/no/innovationgarage/elcheapoais/downsampler',
-            "no.innovationgarage.elcheapoais.downsampler", "station_id", None)
+            self.bus, 'no.innovationgarage.elcheapoais.config', '/no/innovationgarage/elcheapoais/receiver',
+            "no.innovationgarage.elcheapoais.receiver", "station_id", None)
 
         self.bus.add_signal_receiver(self.PropertiesChanged,
                                      dbus_interface = "org.freedesktop.DBus.Properties",

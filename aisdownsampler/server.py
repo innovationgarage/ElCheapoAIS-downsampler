@@ -7,20 +7,20 @@ import threading
 import queue
 
 senders = set()
-station_id = None
 downsampler = None
 dbus_api = None
  
 class Downsampler(threading.Thread):
-    def __init__(self, **kw):
+    def __init__(self, station_id=None, **kw):
         self.queue = queue.Queue()
+        self.station_id = station_id
         self.sess = aisdownsampler.downsampler.Session(**kw)
         threading.Thread.__init__(self)
         
     def inputiter(self):
         while True:
             msg = self.queue.get()
-            yield aisdownsampler.message.NmeaMessage(msg, station_id)
+            yield aisdownsampler.message.NmeaMessage(msg, self.station_id or "unknown")
 
     def run(self):
         for msg in self.sess(self.inputiter()):
@@ -53,9 +53,8 @@ class SendHandler(socket_tentacles.SendHandler):
         return id(self)
 
 def server(config):
-    global downsampler, dbus_api, station_id
-    station_id = config["station_id"]
-    downsampler = Downsampler(**config["session"])
+    global downsampler, dbus_api
+    downsampler = Downsampler()
     downsampler.start()
     dbus_api = aisdownsampler.dbus_api.DBusManager(downsampler, config["dbus"])
     dbus_api.start()

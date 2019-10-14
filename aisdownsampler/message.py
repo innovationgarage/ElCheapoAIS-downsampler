@@ -23,7 +23,7 @@ class NmeaMessage(object):
             self.add_tagblock()
         
     def add_tagblock(self):
-        tagblock_values = [(k, v) for k, v in self.tagblock.iteritems()]
+        tagblock_values = [(k, v) for k, v in self.tagblock.items()]
         tagblock = ""
         for i, kv in enumerate(tagblock_values):
             if i==0:

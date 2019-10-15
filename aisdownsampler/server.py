@@ -56,6 +56,6 @@ def server(config):
     global downsampler, dbus_api
     downsampler = Downsampler()
     downsampler.start()
-    dbus_api = aisdownsampler.dbus_api.DBusManager(downsampler, config["dbus"])
+    dbus_api = aisdownsampler.dbus_api.DBusManager(downsampler)
     dbus_api.start()
     socket_tentacles.run(config, {"source": ReceiveHandler, "destination": SendHandler})

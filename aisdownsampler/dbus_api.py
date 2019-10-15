@@ -4,6 +4,7 @@ import dbus.mainloop.glib
 import gi.repository.GLib
 import threading
 import queue
+import os
 
 def get(bus, bus_name, obj_path, interface_name, parameter_name, default=None):
     try:
@@ -12,9 +13,8 @@ def get(bus, bus_name, obj_path, interface_name, parameter_name, default=None):
         return default
 
 class DBusManager(threading.Thread):
-    def __init__(self, downsampler, bus="SystemBus"):
+    def __init__(self, downsampler):
         self.downsampler = downsampler
-        self.bus_name = bus
         threading.Thread.__init__(self)
 
     def NMEA(self, msg):
@@ -38,7 +38,7 @@ class DBusManager(threading.Thread):
     def run(self):
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
-        self.bus = getattr(dbus, self.bus_name)()
+        self.bus = getattr(dbus, os.environ.get("ELCHEAPOAIS_DBUS", "SystemBus"))()
         self.name = dbus.service.BusName('no.innovationgarage.elcheapoais.downsampler', self.bus)
 
         self.downsampler.sess.max_message_per_sec = get(

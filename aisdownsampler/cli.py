@@ -32,16 +32,9 @@ def downsample(ctx, station_id, max_message_per_sec, max_message_per_mmsi_per_se
                     outf.write(msg.fullmessage)
 
 @main.command()
-@click.argument("config")
 @click.pass_context
-def server(ctx, config):
-    """Example:
-
-aisdownsampler server config.json
-"""
-    with open(config) as f:
-        config = json.load(f)
-    aisdownsampler.server.server(config)
+def server(ctx):
+    aisdownsampler.server.server()
                     
 @main.group()
 @click.pass_context

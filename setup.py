@@ -20,6 +20,6 @@ setuptools.setup(name='aisdownsampler',
       include_package_data=True,
       entry_points='''
       [console_scripts]
-      aisdownsampler = aisdownsampler.cli:main
+      elcheapoais-downsampler = aisdownsampler.cli:main
       '''
   )

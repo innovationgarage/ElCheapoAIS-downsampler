@@ -6,12 +6,9 @@ import datetime
 import threading
 import queue
 
-senders = set()
-downsampler = None
-dbus_api = None
- 
 class Downsampler(threading.Thread):
-    def __init__(self, station_id=None, **kw):
+    def __init__(self, manager, station_id=None, **kw):
+        self.manager = manager
         self.queue = queue.Queue()
         self.station_id = station_id
         self.sess = aisdownsampler.downsampler.Session(**kw)
@@ -25,26 +22,26 @@ class Downsampler(threading.Thread):
     def run(self):
         for msg in self.sess(self.inputiter()):
             if hasattr(msg, 'json'):
-                for sender in senders:
+                for sender in self.manager.senders:
                     sender.queue.put(msg.fullmessage)
                     
 class ReceiveHandler(socket_tentacles.ReceiveHandler):
     def handle(self):
         for line in self.file:
             print("Received", repr(line))
-            downsampler.queue.put(line)
+            self.server.manager.downsampler.queue.put(line)
 
 class SendHandler(socket_tentacles.SendHandler):
     def handle(self):
         self.queue = queue.Queue()
         try:
-            senders.add(self)            
+            self.server.manager.senders.add(self)            
             while True:
                 msg = self.queue.get()
                 self.file.write(msg)
                 self.file.flush()
         finally:
-            senders.remove(self)
+            self.server.manager.senders.remove(self)
 
     def put(self, msg):
         self.queue.put(msg)
@@ -52,10 +49,17 @@ class SendHandler(socket_tentacles.SendHandler):
     def __hash__(self):
         return id(self)
 
-def server(config):
-    global downsampler, dbus_api
-    downsampler = Downsampler()
-    downsampler.start()
-    dbus_api = aisdownsampler.dbus_api.DBusManager(downsampler)
-    dbus_api.start()
-    socket_tentacles.run(config, {"source": ReceiveHandler, "destination": SendHandler})
+class Server(object):
+    def __init__(self):
+        self.senders = set()
+        self.downsampler = Downsampler(self)
+        self.server = socket_tentacles.Server({"source": ReceiveHandler, "destination": SendHandler})
+        self.server.manager = self
+        self.dbus_api = aisdownsampler.dbus_api.DBusManager(self)
+
+        self.downsampler.start()
+        self.dbus_api.start()
+
+def server():
+    return Server()
+

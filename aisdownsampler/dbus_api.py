@@ -8,7 +8,7 @@ import os
 
 def get(bus, bus_name, obj_path, interface_name, parameter_name, default=None):
     try:
-        return bus.get_object(bus_name, obj_path).Get(interface_name, parameter_name)
+        return bus.get_object(bus_name, obj_path).Get(interface_name, parameter_name, dbus_interface='org.freedesktop.DBus.Properties')
     except:
         return default
 
